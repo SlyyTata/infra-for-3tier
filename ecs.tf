@@ -74,6 +74,20 @@ resource "aws_ecs_service" "frontend" {
 }
 
 # ---------- API ----------
+locals {
+  ssm_arn_prefix = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter${var.ssm_parameter_prefix}"
+
+  # Shared by the migrate and api containers
+  api_environment = [
+    { name = "ALGORITHM", value = "HS256" },
+    { name = "ACCESS_TOKEN_EXPIRE_MINUTES", value = "60" },
+  ]
+  api_secrets = [
+    { name = "DATABASE_URL", valueFrom = "${local.ssm_arn_prefix}/DATABASE_URL" },
+    { name = "SECRET_KEY", valueFrom = "${local.ssm_arn_prefix}/SECRET_KEY" },
+  ]
+}
+
 resource "aws_ecs_task_definition" "api" {
   family                   = "${var.project_name}-api"
   network_mode             = "awsvpc"
@@ -83,10 +97,33 @@ resource "aws_ecs_task_definition" "api" {
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
+    # Runs alembic migrations against the database, then exits.
+    # The api container below only starts if this exits successfully.
     {
-      name      = var.api_container_name
-      image     = var.api_image
-      essential = true
+      name        = "migrate"
+      image       = var.api_image
+      essential   = false
+      command     = ["python", "-m", "app.migrate"]
+      environment = local.api_environment
+      secrets     = local.api_secrets
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.api.name
+          awslogs-region        = var.region
+          awslogs-stream-prefix = "migrate"
+        }
+      }
+    },
+    {
+      name        = var.api_container_name
+      image       = var.api_image
+      essential   = true
+      environment = local.api_environment
+      secrets     = local.api_secrets
+      dependsOn = [
+        { containerName = "migrate", condition = "SUCCESS" }
+      ]
       portMappings = [
         {
           containerPort = var.api_container_port

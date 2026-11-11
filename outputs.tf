@@ -26,3 +26,8 @@ output "api_service_name" {
 output "api_task_definition_arn" {
   value = aws_ecs_task_definition.api.arn
 }
+
+output "app_deploy_role_arn" {
+  description = "Set as the AWS_DEPLOY_ROLE_ARN variable in the app repo's GitHub settings"
+  value       = aws_iam_role.app_deploy.arn
+}
