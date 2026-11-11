@@ -23,7 +23,7 @@ resource "aws_ecs_task_definition" "frontend" {
   container_definitions = jsonencode([
     {
       name      = var.frontend_container_name
-      image     = var.frontend_image
+      image     = "${aws_ecr_repository.frontend.repository_url}:${var.frontend_image_tag}"
       essential = true
       portMappings = [
         {
@@ -101,7 +101,7 @@ resource "aws_ecs_task_definition" "api" {
     # The api container below only starts if this exits successfully.
     {
       name        = "migrate"
-      image       = var.api_image
+      image       = "${aws_ecr_repository.api.repository_url}:${var.api_image_tag}"
       essential   = false
       command     = ["python", "-m", "app.migrate"]
       environment = local.api_environment
@@ -117,7 +117,7 @@ resource "aws_ecs_task_definition" "api" {
     },
     {
       name        = var.api_container_name
-      image       = var.api_image
+      image       = "${aws_ecr_repository.api.repository_url}:${var.api_image_tag}"
       essential   = true
       environment = local.api_environment
       secrets     = local.api_secrets

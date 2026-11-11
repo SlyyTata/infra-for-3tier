@@ -16,7 +16,8 @@ State: `s3://slyy-tata-bck-remote/three-tier-ecs-fargate/terraform.tfstate`
 | `network.tf` | VPC, subnets, IGW, NAT, route tables |
 | `security_groups.tf` | ALB, frontend and API security groups |
 | `alb.tf` | ALB, target groups, listeners, `/api` routing rule |
-| `iam.tf` | ECS task execution role |
+| `iam.tf` | ECS task execution role (+ SSM read), app CD deploy role (OIDC) |
+| `ecr.tf` | ECR repositories for the API and frontend images |
 | `logs.tf` | CloudWatch log groups |
 | `ecs.tf` | ECS cluster, task definitions, services |
 | `outputs.tf` | Outputs |

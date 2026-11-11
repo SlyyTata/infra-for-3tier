@@ -31,3 +31,11 @@ output "app_deploy_role_arn" {
   description = "Set as the AWS_DEPLOY_ROLE_ARN variable in the app repo's GitHub settings"
   value       = aws_iam_role.app_deploy.arn
 }
+
+output "ecr_api_repository_url" {
+  value = aws_ecr_repository.api.repository_url
+}
+
+output "ecr_frontend_repository_url" {
+  value = aws_ecr_repository.frontend.repository_url
+}
