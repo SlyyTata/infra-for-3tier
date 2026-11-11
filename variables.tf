@@ -90,13 +90,33 @@ variable "api_container_port" {
 }
 
 variable "api_health_check_path" {
-  description = "Health check path for the API target group (must be under /api since the ALB doesn't strip the prefix)"
+  description = "Health check path for the API target group. Health checks go straight to the task (not through listener rules), so it doesn't need to be under /api"
   type        = string
-  default     = "/api/health"
+  default     = "/health"
 }
 
 variable "api_desired_count" {
   description = "Number of API tasks"
   type        = number
   default     = 2
+}
+
+# ---------- App secrets ----------
+variable "ssm_parameter_prefix" {
+  description = "SSM Parameter Store path holding the API secrets (DATABASE_URL, SECRET_KEY) as SecureStrings"
+  type        = string
+  default     = "/realmile"
+}
+
+# ---------- App CD (GitHub Actions OIDC) ----------
+variable "github_app_repo" {
+  description = "owner/repo whose CD workflow may deploy new images to the ECS services"
+  type        = string
+  default     = "SlyyTata/realmile-logistics"
+}
+
+variable "github_app_branch" {
+  description = "Only workflow runs on this branch of github_app_repo can assume the deploy role"
+  type        = string
+  default     = "main"
 }
