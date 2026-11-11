@@ -107,14 +107,12 @@ variable "api_desired_count" {
 variable "ssm_parameter_prefix" {
   description = "SSM Parameter Store path holding the API secrets (DATABASE_URL, SECRET_KEY) as SecureStrings"
   type        = string
-  default     = "/realmile"
 }
 
 # ---------- App CD (GitHub Actions OIDC) ----------
 variable "github_app_repo" {
   description = "owner/repo whose CD workflow may deploy new images to the ECS services"
   type        = string
-  default     = "SlyyTata/realmile-logistics"
 }
 
 variable "github_app_branch" {
