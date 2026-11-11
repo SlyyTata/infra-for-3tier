@@ -46,9 +46,10 @@ variable "certificate_arn" {
 }
 
 # ---------- Frontend ----------
-variable "frontend_image" {
-  description = "Docker image for the frontend container"
+variable "frontend_image_tag" {
+  description = "Tag of the frontend image in ECR used by Terraform's task definition (CD deploys commit-SHA tags on top)"
   type        = string
+  default     = "latest"
 }
 
 variable "frontend_container_name" {
@@ -74,9 +75,10 @@ variable "frontend_desired_count" {
 }
 
 # ---------- API ----------
-variable "api_image" {
-  description = "Docker image for the API container"
+variable "api_image_tag" {
+  description = "Tag of the API image in ECR used by Terraform's task definition (CD deploys commit-SHA tags on top)"
   type        = string
+  default     = "latest"
 }
 
 variable "api_container_name" {

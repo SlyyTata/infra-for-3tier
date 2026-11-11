@@ -48,7 +48,8 @@ data "aws_iam_openid_connect_provider" "github" {
   url = "https://token.actions.githubusercontent.com"
 }
 
-# Least-privilege: can only roll new task definitions onto THIS stack's two services,
+# Least-privilege: can only push to this stack's two ECR repos and roll new task
+# definitions onto THIS stack's two services,
 # and only from the main branch of the app repo (not PRs, forks or other branches).
 resource "aws_iam_role" "app_deploy" {
   name = "${var.project_name}-app-deploy"
@@ -70,7 +71,7 @@ resource "aws_iam_role" "app_deploy" {
 }
 
 resource "aws_iam_role_policy" "app_deploy" {
-  name = "ecs-deploy"
+  name = "ecr-push-ecs-deploy"
   role = aws_iam_role.app_deploy.id
 
   policy = jsonencode({
@@ -88,6 +89,27 @@ resource "aws_iam_role_policy" "app_deploy" {
         Effect   = "Allow"
         Action   = ["ecs:UpdateService", "ecs:DescribeServices"]
         Resource = [aws_ecs_service.api.id, aws_ecs_service.frontend.id]
+      },
+      {
+        # Needed to log in to ECR; can't be scoped to a repository
+        Sid      = "EcrLogin"
+        Effect   = "Allow"
+        Action   = "ecr:GetAuthorizationToken"
+        Resource = "*"
+      },
+      {
+        Sid    = "EcrPushPull"
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:PutImage",
+          "ecr:BatchGetImage",
+          "ecr:GetDownloadUrlForLayer",
+        ]
+        Resource = [aws_ecr_repository.api.arn, aws_ecr_repository.frontend.arn]
       },
       {
         Sid      = "PassExecutionRole"
