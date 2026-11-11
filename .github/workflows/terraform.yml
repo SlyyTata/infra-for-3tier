@@ -1,0 +1,59 @@
+name: Terraform
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+  workflow_dispatch: # manual "Run workflow" button
+
+# Only one run at a time touches the state file
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write # needed for OIDC login to AWS
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          aws-region: eu-west-2
+          role-to-assume: ${{ secrets.ROLE }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.6"
+
+      # terraform.tfvars is git-ignored, so its full contents live in one secret
+      - name: Write terraform.tfvars
+        env:
+          TFVARS: ${{ secrets.TFVARS }}
+        run: printf '%s\n' "$TFVARS" > terraform.tfvars
+
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -input=false -out=tfplan
+
+      # Pull requests stop at plan; only main (push or manual run) applies
+      - name: Terraform Apply
+        if: github.event_name != 'pull_request'
+        run: terraform apply -input=false -auto-approve tfplan
