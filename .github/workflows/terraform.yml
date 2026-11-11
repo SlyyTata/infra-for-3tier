@@ -35,14 +35,15 @@ jobs:
         with:
           terraform_version: "1.16.6"
 
+      # Runs before terraform.tfvars is written, so it only checks committed code
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
+
       # terraform.tfvars is git-ignored, so its full contents live in one secret
       - name: Write terraform.tfvars
         env:
           TFVARS: ${{ secrets.TFVARS }}
         run: printf '%s\n' "$TFVARS" > terraform.tfvars
-
-      - name: Terraform Format
-        run: terraform fmt -check -recursive
 
       - name: Terraform Init
         run: terraform init -input=false
