@@ -3,6 +3,7 @@
 #################################################
 
 data "aws_availability_zones" "available" {
+  #checkov:skip=CKV_AWS_394: Only the first two AZs are used by index; new AZs don't change the result
   state = "available"
 }
 
@@ -13,6 +14,16 @@ resource "aws_vpc" "main" {
 
   tags = {
     Name = "${var.project_name}-vpc"
+  }
+
+  #checkov:skip=CKV2_AWS_11: Logging intentionally disabled for this project; see README security section
+}
+
+resource "aws_default_security_group" "default" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "${var.project_name}-default-sg-locked"
   }
 }
 
