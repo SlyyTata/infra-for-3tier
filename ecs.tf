@@ -23,7 +23,7 @@ resource "aws_ecs_task_definition" "frontend" {
   container_definitions = jsonencode([
     {
       name      = var.frontend_container_name
-      image     = "${aws_ecr_repository.frontend.repository_url}:${var.frontend_image_tag}"
+      image     = var.frontend_image
       essential = true
       portMappings = [
         {
@@ -31,14 +31,6 @@ resource "aws_ecs_task_definition" "frontend" {
           hostPort      = var.frontend_container_port
         }
       ]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = aws_cloudwatch_log_group.frontend.name
-          awslogs-region        = var.region
-          awslogs-stream-prefix = "frontend"
-        }
-      }
     }
   ])
 }
@@ -101,23 +93,15 @@ resource "aws_ecs_task_definition" "api" {
     # The api container below only starts if this exits successfully.
     {
       name        = "migrate"
-      image       = "${aws_ecr_repository.api.repository_url}:${var.api_image_tag}"
+      image       = var.api_image
       essential   = false
       command     = ["python", "-m", "app.migrate"]
       environment = local.api_environment
       secrets     = local.api_secrets
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = aws_cloudwatch_log_group.api.name
-          awslogs-region        = var.region
-          awslogs-stream-prefix = "migrate"
-        }
-      }
     },
     {
       name        = var.api_container_name
-      image       = "${aws_ecr_repository.api.repository_url}:${var.api_image_tag}"
+      image       = var.api_image
       essential   = true
       environment = local.api_environment
       secrets     = local.api_secrets
@@ -130,14 +114,6 @@ resource "aws_ecs_task_definition" "api" {
           hostPort      = var.api_container_port
         }
       ]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = aws_cloudwatch_log_group.api.name
-          awslogs-region        = var.region
-          awslogs-stream-prefix = "api"
-        }
-      }
     }
   ])
 }

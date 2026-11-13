@@ -12,26 +12,80 @@ concurrency:
   group: terraform-${{ github.ref }}
   cancel-in-progress: false
 
-permissions:
-  id-token: write # needed for OIDC login to AWS
-  contents: read
+# Nothing by default; each job asks only for what it needs
+permissions: {}
 
 jobs:
-  terraform:
+  # ------------------------------------------------------------------
+  # 1. Security tests. Runs WITHOUT any AWS credentials. If any check
+  #    fails, the terraform job below never starts, so nothing insecure
+  #    is planned or applied.
+  #
+  #    Accepted findings are skipped inline in the .tf files with a
+  #    written reason (#checkov:skip=... / #trivy:ignore:...), so a NEW
+  #    insecure change always fails this job.
+  # ------------------------------------------------------------------
+  security-scan:
+    name: Security scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0              # full history, so the secret scan sees every commit
+          persist-credentials: false  # don't leave the GitHub token on disk
+
+      # Passwords, keys or tokens committed anywhere in the git history
+      - name: Secret scan (Gitleaks)
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE":/repo zricethezav/gitleaks:v8.30.1 \
+            git /repo --redact --no-banner --verbose
+
+      # Insecure Terraform: open security groups, public resources, weak IAM, missing encryption...
+      - name: Terraform misconfiguration scan (Checkov)
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE":/tf bridgecrew/checkov:3.4.5 \
+            --directory /tf --framework terraform --compact --quiet
+
+      # Second opinion with a different rule set; blocks on HIGH and CRITICAL
+      - name: Terraform misconfiguration scan (Trivy)
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE":/tf aquasec/trivy:0.76.2 \
+            config --severity HIGH,CRITICAL --exit-code 1 /tf
+
+      # The pipeline itself: unpinned actions, token leaks, script injection...
+      - name: Workflow security scan (zizmor)
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE":/repo ghcr.io/zizmorcore/zizmor:1.32.0 \
+            --offline /repo/.github/workflows
+
+  # ------------------------------------------------------------------
+  # 2. Plan (and on main, apply). Only runs if the security scan passed.
+  # ------------------------------------------------------------------
+  terraform:
+    name: Terraform plan / apply
+    needs: security-scan
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # needed for OIDC login to AWS
+      contents: read
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v6.3.0
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           aws-region: eu-west-2
           role-to-assume: ${{ secrets.ROLE }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: "1.16.6"
 

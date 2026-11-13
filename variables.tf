@@ -46,10 +46,9 @@ variable "certificate_arn" {
 }
 
 # ---------- Frontend ----------
-variable "frontend_image_tag" {
-  description = "Tag of the frontend image in ECR used by Terraform's task definition (CD deploys commit-SHA tags on top)"
+variable "frontend_image" {
+  description = "Public Docker Hub image for the frontend, e.g. slyytata/realmile-web:latest (CD deploys commit-SHA tags on top)"
   type        = string
-  default     = "latest"
 }
 
 variable "frontend_container_name" {
@@ -75,10 +74,9 @@ variable "frontend_desired_count" {
 }
 
 # ---------- API ----------
-variable "api_image_tag" {
-  description = "Tag of the API image in ECR used by Terraform's task definition (CD deploys commit-SHA tags on top)"
+variable "api_image" {
+  description = "Public Docker Hub image for the API (also runs migrations), e.g. slyytata/realmile-api:latest"
   type        = string
-  default     = "latest"
 }
 
 variable "api_container_name" {
