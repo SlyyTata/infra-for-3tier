@@ -1,7 +1,3 @@
-#################################################
-# IAM
-#################################################
-
 # Task execution role so Fargate can pull images and read app secrets
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "${var.project_name}-ecs-task-execution-role"

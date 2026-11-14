@@ -1,8 +1,3 @@
-#################################################
-# Load balancer
-#################################################
-
-# Accepted risk: this is the public entry point of the website, so it must be internet-facing
 #trivy:ignore:AVD-AWS-0053
 resource "aws_lb" "alb" {
   #checkov:skip=CKV2_AWS_28: WAF (~$5+/month) deferred for this learning project; see README security section
@@ -23,8 +18,6 @@ resource "aws_lb" "alb" {
 
 resource "aws_lb_target_group" "frontend_tg" {
   #checkov:skip=CKV_AWS_378: TLS ends at the ALB; ALB-to-task traffic stays inside the private VPC
-  # name_prefix + create_before_destroy lets the TG be replaced (e.g. port change)
-  # without failing on "ResourceInUse" while the listener still points at it.
   name_prefix = "fe-"
   port        = var.frontend_container_port
   protocol    = "HTTP"
@@ -56,8 +49,6 @@ resource "aws_lb_target_group" "frontend_tg" {
 
 resource "aws_lb_target_group" "api_tg" {
   #checkov:skip=CKV_AWS_378: TLS ends at the ALB; ALB-to-task traffic stays inside the private VPC
-  # name_prefix + create_before_destroy lets the TG be replaced (e.g. port change)
-  # without failing on "ResourceInUse" while the listener still points at it.
   name_prefix = "api-"
   port        = var.api_container_port
   protocol    = "HTTP"
@@ -87,6 +78,7 @@ resource "aws_lb_target_group" "api_tg" {
   }
 }
 
+# http listerner
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.alb.arn
   port              = 80
@@ -117,8 +109,7 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-# /api/* goes to the API. The ALB does NOT strip the prefix,
-# so the API must serve its routes under /api.
+
 resource "aws_lb_listener_rule" "api" {
   listener_arn = aws_lb_listener.https.arn
   priority     = 10
