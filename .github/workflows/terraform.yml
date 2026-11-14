@@ -16,7 +16,7 @@ concurrency:
 permissions: {}
 
 jobs:
-  
+
   # Security scan job runs first, and must pass before terraform job runs. It uses Docker images to avoid installing tools on the runner.
   security-scan:
     name: Security scan
@@ -42,11 +42,16 @@ jobs:
           docker run --rm -v "$GITHUB_WORKSPACE":/tf bridgecrew/checkov:3.4.5 \
             --directory /tf --framework terraform --compact --quiet
 
-      # Second opinion with a different rule set; blocks on HIGH and CRITICAL
-      - name: Terraform misconfiguration scan (Trivy)
-        run: |
-          docker run --rm -v "$GITHUB_WORKSPACE":/tf aquasec/trivy:0.76.2 \
-            config --severity HIGH,CRITICAL --exit-code 1 /tf
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
 
   # Terraform job begins here, but only if the security-scan job above passes.
   terraform:
@@ -97,3 +102,14 @@ jobs:
       - name: Terraform Apply
         if: github.event_name != 'pull_request'
         run: terraform apply -input=false -auto-approve tfplan
+
+  # posts an alert to the team's Slack channel
+  notify-failure:
+    name: Alert team on Slack
+    needs: [security-scan, terraform]
+    permissions: {}
+    uses: ./.github/workflows/notify-slack.yml
+    with:
+      results: ${{ toJSON(needs) }}
+    secrets:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

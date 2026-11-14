@@ -7,7 +7,7 @@ resource "aws_ecs_cluster" "cluster" {
   }
 }
 
-# ---------- Frontend ----------
+# the 1st task def for the frontend container
 resource "aws_ecs_task_definition" "frontend" {
   family                   = "${var.project_name}-frontend"
   network_mode             = "awsvpc"
@@ -31,6 +31,7 @@ resource "aws_ecs_task_definition" "frontend" {
   ])
 }
 
+# 1st service for the frontend container
 resource "aws_ecs_service" "frontend" {
   name            = "${var.project_name}-frontend-svc"
   cluster         = aws_ecs_cluster.cluster.id
@@ -61,7 +62,7 @@ resource "aws_ecs_service" "frontend" {
   depends_on = [aws_lb_listener.https]
 }
 
-# ---------- API ----------
+# variable for the api container task definition and service
 locals {
   ssm_arn_prefix = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter${var.ssm_parameter_prefix}"
 
