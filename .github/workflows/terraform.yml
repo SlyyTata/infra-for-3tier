@@ -105,11 +105,13 @@ jobs:
 
   # posts an alert to the team's Slack channel
   notify-failure:
-    name: Alert team on Slack
+    name: Send custom event details to a Slack workflow
     needs: [security-scan, terraform]
     permissions: {}
-    uses: ./.github/workflows/notify-slack.yml
+    uses: slackapi/slack-github-action@v4.0.0
     with:
-      results: ${{ toJSON(needs) }}
-    secrets:
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+      webhook-type: webhook-trigger
+      payload: |
+        status: "${{ job.status }}"
+        option: "false"
