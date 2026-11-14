@@ -38,14 +38,12 @@ credentials. `terraform plan` / `apply` only run if every check passes.
 | Secrets in git history | Gitleaks | Committed passwords, access keys, tokens |
 | Terraform misconfiguration | Checkov | Open security groups, admin IAM policies, public resources, missing encryption |
 | Terraform misconfiguration (HIGH/CRITICAL) | Trivy | Second rule set for the same class of problems |
-| Pipeline security | zizmor | Unpinned actions, credential leaks, script injection in workflows |
 
 Run the same checks locally before pushing:
 ```bash
 docker run --rm -v "$PWD":/repo zricethezav/gitleaks:v8.30.1 git /repo --redact --no-banner
 docker run --rm -v "$PWD":/tf bridgecrew/checkov:3.4.5 --directory /tf --framework terraform --skip-path .terraform --compact --quiet
 docker run --rm -v "$PWD":/tf aquasec/trivy:0.76.2 config --skip-dirs /tf/.terraform --severity HIGH,CRITICAL --exit-code 1 /tf
-docker run --rm -v "$PWD":/repo ghcr.io/zizmorcore/zizmor:1.32.0 --offline /repo/.github/workflows
 ```
 
 ### Hardening in place

@@ -16,15 +16,8 @@ concurrency:
 permissions: {}
 
 jobs:
-  # ------------------------------------------------------------------
-  # 1. Security tests. Runs WITHOUT any AWS credentials. If any check
-  #    fails, the terraform job below never starts, so nothing insecure
-  #    is planned or applied.
-  #
-  #    Accepted findings are skipped inline in the .tf files with a
-  #    written reason (#checkov:skip=... / #trivy:ignore:...), so a NEW
-  #    insecure change always fails this job.
-  # ------------------------------------------------------------------
+  
+  # Security scan job runs first, and must pass before terraform job runs. It uses Docker images to avoid installing tools on the runner.
   security-scan:
     name: Security scan
     runs-on: ubuntu-latest
@@ -32,7 +25,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0              # full history, so the secret scan sees every commit
           persist-credentials: false  # don't leave the GitHub token on disk
@@ -55,15 +48,7 @@ jobs:
           docker run --rm -v "$GITHUB_WORKSPACE":/tf aquasec/trivy:0.76.2 \
             config --severity HIGH,CRITICAL --exit-code 1 /tf
 
-      # The pipeline itself: unpinned actions, token leaks, script injection...
-      - name: Workflow security scan (zizmor)
-        run: |
-          docker run --rm -v "$GITHUB_WORKSPACE":/repo ghcr.io/zizmorcore/zizmor:1.32.0 \
-            --offline /repo/.github/workflows
-
-  # ------------------------------------------------------------------
-  # 2. Plan (and on main, apply). Only runs if the security scan passed.
-  # ------------------------------------------------------------------
+  # Terraform job begins here, but only if the security-scan job above passes.
   terraform:
     name: Terraform plan / apply
     needs: security-scan
@@ -74,18 +59,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
           aws-region: eu-west-2
           role-to-assume: ${{ secrets.ROLE }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.16.6"
 

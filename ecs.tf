@@ -1,7 +1,3 @@
-#################################################
-# ECS cluster, task definitions and services
-#################################################
-
 resource "aws_ecs_cluster" "cluster" {
   name = "${var.project_name}-cluster"
 

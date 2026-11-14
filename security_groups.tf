@@ -1,7 +1,3 @@
-#################################################
-# Security groups
-#################################################
-
 resource "aws_security_group" "alb_sg" {
   name        = "${var.project_name}-alb-sg"
   description = "Public ALB: HTTP/HTTPS in from the internet, out only to the app tasks"

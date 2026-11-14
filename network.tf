@@ -1,7 +1,3 @@
-#################################################
-# Networking: VPC, 2 public + 2 private subnets
-#################################################
-
 data "aws_availability_zones" "available" {
   #checkov:skip=CKV_AWS_394: Only the first two AZs are used by index; new AZs don't change the result
   state = "available"
@@ -96,6 +92,7 @@ resource "aws_nat_gateway" "nat" {
   }
 }
 
+#Public route table for ALB and NAT gateway
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
@@ -109,6 +106,7 @@ resource "aws_route_table" "public" {
   }
 }
 
+#Public route table associations for ALB and NAT gateway
 resource "aws_route_table_association" "pub_1" {
   subnet_id      = aws_subnet.pub_subnet_1.id
   route_table_id = aws_route_table.public.id
@@ -119,6 +117,7 @@ resource "aws_route_table_association" "pub_2" {
   route_table_id = aws_route_table.public.id
 }
 
+# Private route table for ECS tasks to reach the internet via NAT gateway
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
@@ -132,6 +131,7 @@ resource "aws_route_table" "private" {
   }
 }
 
+# Private route table associations for ECS tasks
 resource "aws_route_table_association" "priv_1" {
   subnet_id      = aws_subnet.priv_subnet_1.id
   route_table_id = aws_route_table.private.id
